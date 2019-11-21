@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/neutronchain-dev-community/Lobby](https://badges.gitter.im/neutronchain-dev-community/Lobby.svg)](https://gitter.im/neutronchain-dev-community/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Go version](https://img.shields.io/badge/go-1.11.5-blue.svg)](https://github.com/moovweb/gvm)
-[![CircleCI](https://circleci.com/gh/neutronchainproject/neutronchain-core.svg?style=svg&circle-token=fe0817d127f251a34b8bdd3336a808c7537e5ec0)](https://circleci.com/gh/neutronchainproject/neutronchain-core)
+token=fe0817d127f251a34b8bdd3336a808c7537e5ec0)](https://circleci.com/gh/neutronchainproject/neutronchain-core)
 [![Go Report Card](https://goreportcard.com/badge/github.com/neutronchainproject/neutronchain-core)](https://goreportcard.com/report/github.com/neutronchainproject/neutronchain-core)
 [![Coverage](https://codecov.io/gh/neutronchainproject/neutronchain-core/branch/master/graph/badge.svg)](https://codecov.io/gh/neutronchainproject/neutronchain-core)
 [![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/neutronchainproject/neutronchain-core)
