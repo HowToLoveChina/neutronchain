@@ -8,7 +8,7 @@
 [![Releases](https://img.shields.io/github/release/neutronchainproject/neutronchain-core/all.svg?style=flat-square)](https://github.com/neutronchainproject/neutronchain-core/releases)
 [![LICENSE](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-![neutronchain Logo](logo/neutronchain.png)
+![neutronchain Logo](https://www.neutroncoin.io/ntclogo.png)
 ----
 
 Welcome to the official Go implementation of neutronchain protocol! neutronchain is building the next generation of the decentralized 
