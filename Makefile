@@ -1,204 +1,142 @@
-########################################################################################################################
-# Copyright (c) 2019 IoTeX Foundation
-# This is an alpha (internal) release and is not suitable for production. This source code is provided 'as is' and no
-# warranties are given as to title or non-infringement, merchantability or fitness for purpose and, to the extent
-# permitted by law, all liability for your use of the code is disclaimed. This source code is governed by Apache
-# License 2.0 that can be found in the LICENSE file.
-########################################################################################################################
+# This Makefile is meant to be used by people that do not usually work
+# with Go source code. If you know what GOPATH is then you probably
+# don't need to bother with make.
 
-# Go parameters
-GOCMD=go
-GOLINT=golint
-GOBUILD=$(GOCMD) build
-GOINSTALL=$(GOCMD) install
-GOCLEAN=$(GOCMD) clean
-GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get
-BUILD_TARGET_SERVER=server
-BUILD_TARGET_ACTINJV2=actioninjectorv2
-BUILD_TARGET_ADDRGEN=addrgen
-BUILD_TARGET_IOCTL=ioctl
-BUILD_TARGET_MINICLUSTER=minicluster
-BUILD_TARGET_RECOVER=recover
+.PHONY: gntc android ios gntc-cross swarm evm all test clean
+.PHONY: gntc-linux gntc-linux-386 gntc-linux-amd64 gntc-linux-mips64 gntc-linux-mips64le
+.PHONY: gntc-linux-arm gntc-linux-arm-5 gntc-linux-arm-6 gntc-linux-arm-7 gntc-linux-arm64
+.PHONY: gntc-darwin gntc-darwin-386 gntc-darwin-amd64
+.PHONY: gntc-windows gntc-windows-386 gntc-windows-amd64
 
-# Pkgs
-ALL_PKGS := $(shell go list ./... )
-PKGS := $(shell go list ./... | grep -v /test/ )
-ROOT_PKG := "github.com/iotexproject/iotex-core"
+GOBIN = $(shell pwd)/build/bin
+GO ?= latest
 
-# Docker parameters
-DOCKERCMD=docker
+gntc:
+	build/env.sh go run build/ci.go install ./cmd/gntc
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/gntc\" to launch gntc."
 
-# Package Info
-PACKAGE_VERSION := $(shell git describe --tags)
-PACKAGE_COMMIT_ID := $(shell git rev-parse HEAD)
-GIT_STATUS := $(shell git status --porcelain)
-ifdef GIT_STATUS
-	GIT_STATUS := "dirty"
-else
-	GIT_STATUS := "clean"
-endif
-GO_VERSION := $(shell go version)
-BUILD_TIME=$(shell date +%F-%Z/%T)
-VersionImportPath := github.com/iotexproject/iotex-core/pkg/version
-PackageFlags += -X '$(VersionImportPath).PackageVersion=$(PACKAGE_VERSION)'
-PackageFlags += -X '$(VersionImportPath).PackageCommitID=$(PACKAGE_COMMIT_ID)'
-PackageFlags += -X '$(VersionImportPath).GitStatus=$(GIT_STATUS)'
-PackageFlags += -X '$(VersionImportPath).GoVersion=$(GO_VERSION)'
-PackageFlags += -X '$(VersionImportPath).BuildTime=$(BUILD_TIME)'
-PackageFlags += -s -w
+swarm:
+	build/env.sh go run build/ci.go install ./cmd/swarm
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
-TEST_IGNORE= ".git,vendor"
-COV_OUT := profile.coverprofile
-COV_REPORT := overalls.coverprofile
-COV_HTML := coverage.html
+all:
+	build/env.sh go run build/ci.go install
 
-LINT_LOG := lint.log
+android:
+	build/env.sh go run build/ci.go aar --local
+	@echo "Done building."
+	@echo "Import \"$(GOBIN)/gntc.aar\" to use the library."
 
-V ?= 0
-ifeq ($(V),0)
-	ECHO_V = @
-else
-	VERBOSITY_FLAG = -v
-	DEBUG_FLAG = -debug
-endif
+ios:
+	build/env.sh go run build/ci.go xcode --local
+	@echo "Done building."
+	@echo "Import \"$(GOBIN)/Gntc.framework\" to use the library."
 
-default: clean build test
-all: clean build-all test
+test: all
+	build/env.sh go run build/ci.go test
 
-.PHONY: build
-build: ioctl
-	$(GOBUILD) -ldflags "$(PackageFlags)" -o ./bin/$(BUILD_TARGET_SERVER) -v ./$(BUILD_TARGET_SERVER)
-
-.PHONY: build-all
-build-all: build build-actioninjector build-addrgen build-minicluster build-staterecoverer
-
-.PHONY: build-actioninjector
-build-actioninjector: 
-	$(GOBUILD) -o ./bin/$(BUILD_TARGET_ACTINJV2) -v ./tools/actioninjector.v2
-
-.PHONY: build-addrgen
-build-addrgen:
-	$(GOBUILD) -o ./bin/$(BUILD_TARGET_ADDRGEN) -v ./tools/addrgen
-
-.PHONY: build-minicluster
-build-minicluster:
-	$(GOBUILD) -o ./bin/$(BUILD_TARGET_MINICLUSTER) -v ./tools/minicluster
-
-.PHONY: build-staterecoverer
-build-staterecoverer:
-	$(GOBUILD) -o ./bin/$(BUILD_TARGET_RECOVER) -v ./tools/staterecoverer
-
-.PHONY: fmt
-fmt:
-	$(GOCMD) fmt ./...
-
-.PHONY: lint
-lint:
-	go list ./... | xargs $(GOLINT)
-
-.PHONY: lint-rich
-lint-rich:
-	$(ECHO_V)rm -rf $(LINT_LOG)
-	@echo "Running golangcli lint..."
-	$(ECHO_V)golangci-lint run $(VERBOSITY_FLAG)--enable-all -D gochecknoglobals -D prealloc -D lll -D interfacer -D scopelint -D maligned -D dupl| tee -a $(LINT_LOG)
-
-.PHONY: test
-test: fmt
-	$(GOTEST) -short -race ./...
-
-.PHONY: test-rich
-test-rich:
-	@echo "Running test cases..."
-	$(ECHO_V)rm -f $(COV_REPORT)
-	$(ECHO_V)touch $(COV_OUT)
-	$(ECHO_V)RICHGO_FORCE_COLOR=1 overalls \
-		-project=$(ROOT_PKG) \
-		-go-binary=richgo \
-		-ignore $(TEST_IGNORE) \
-		$(DEBUG_FLAG) -- \
-		$(VERBOSITY_FLAG) -short | \
-		grep -v -e "Test args" -e "Processing"
-
-.PHONY: test-html
-test-html: test-rich
-	@echo "Generating test report html..."
-	$(ECHO_V)gocov convert $(COV_REPORT) | gocov-html > $(COV_HTML)
-	$(ECHO_V)open $(COV_HTML)
-
-.PHONY: mockgen
-mockgen:
-	@./misc/scripts/mockgen.sh
-
-.PHONY: stringer
-stringer:
-	sh ./misc/scripts/stringer.sh
-
-.PHONY: license
-license:
-	@./misc/scripts/licenseheader.sh
-
-.PHONY: dev-deps
-dev-deps:
-	@echo "Installing dev dependencies..."
-	$(ECHO_V)go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-	$(ECHO_V)go get -u github.com/kyoh86/richgo
-	$(ECHO_V)go get -u github.com/axw/gocov/gocov
-	$(ECHO_V)go get -u gopkg.in/matm/v1/gocov-html
-	$(ECHO_V)go get -u github.com/go-playground/overalls
-
-.PHONY: clean
 clean:
-	@echo "Cleaning..."
-	$(ECHO_V)rm -rf ./bin/$(BUILD_TARGET_SERVER)
-	$(ECHO_V)rm -rf ./bin/$(BUILD_TARGET_ADDRGEN)
-	$(ECHO_V)rm -rf ./bin/$(BUILD_TARGET_IOTC)
-	$(ECHO_V)rm -rf ./e2etest/*chain*.db
-	$(ECHO_V)rm -rf *chain*.db
-	$(ECHO_V)rm -rf *trie*.db
-	$(ECHO_V)rm -rf $(COV_REPORT) $(COV_HTML) $(LINT_LOG)
-	$(ECHO_V)find . -name $(COV_OUT) -delete
-	$(ECHO_V)find . -name $(TESTBED_COV_OUT) -delete
-	$(ECHO_V)$(GOCLEAN) -i $(PKGS)
+	rm -fr build/_workspace/pkg/ $(GOBIN)/*
 
-.PHONY: reboot
-reboot:
-	$(ECHO_V)rm -rf *chain*.db
-	$(ECHO_V)rm -rf *trie*.db
-	$(ECHO_V)rm -rf ./e2etest/*chain*.db
-	$(GOBUILD) -ldflags "$(PackageFlags)" -o ./bin/$(BUILD_TARGET_SERVER) -v ./$(BUILD_TARGET_SERVER)
-	./bin/$(BUILD_TARGET_SERVER) -plugin=gateway
+# The devtools target installs tools required for 'go generate'.
+# You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.
 
-.PHONY: run
-run:
-	$(ECHO_V)rm -rf ./e2etest/*chain*.db
-	$(GOBUILD) -ldflags "$(PackageFlags)" -o ./bin/$(BUILD_TARGET_SERVER) -v ./$(BUILD_TARGET_SERVER)
-	./bin/$(BUILD_TARGET_SERVER) -plugin=gateway
+devtools:
+	env GOBIN= go get -u golang.org/x/tools/cmd/stringer
+	env GOBIN= go get -u github.com/jteeuwen/go-bindata/go-bindata
+	env GOBIN= go get -u github.com/fjl/gencodec
+	env GOBIN= go install ./cmd/abigen
 
-.PHONY: docker
-docker:
-	$(DOCKERCMD) build -t $(USER)/iotex-core:latest .
+# Cross Compilation Targets (xgo)
 
-.PHONY: minicluster
-minicluster:
-	$(ECHO_V)rm -rf *chain*.db
-	$(ECHO_V)rm -rf *trie*.db
-	$(GOBUILD) -ldflags "$(PackageFlags)" -o ./bin/$(BUILD_TARGET_MINICLUSTER) -v ./tools/minicluster
-	./bin/$(BUILD_TARGET_MINICLUSTER)
+gntc-cross: gntc-linux gntc-darwin gntc-windows gntc-android gntc-ios
+	@echo "Full cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-*
 
-.PHONY: nightlybuild
-nightlybuild:
-	$(ECHO_V)rm -rf *chain*.db
-	$(ECHO_V)rm -rf *trie*.db
-	$(GOBUILD) -ldflags "$(PackageFlags)" -o ./bin/$(BUILD_TARGET_MINICLUSTER) -v ./tools/minicluster
-	./bin/$(BUILD_TARGET_MINICLUSTER) -timeout=14400 -fp-token=true
+gntc-linux: gntc-linux-386 gntc-linux-amd64 gntc-linux-arm gntc-linux-mips64 gntc-linux-mips64le
+	@echo "Linux cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-*
 
-.PHONY: recover
-recover:
-	$(ECHO_V)rm -rf ./e2etest/*chain*.db
-	$(GOBUILD) -o ./bin/$(BUILD_TARGET_RECOVER) -v ./tools/staterecoverer
-	./bin/$(BUILD_TARGET_RECOVER) -plugin=gateway
+gntc-linux-386:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/386 -v ./cmd/gntc
+	@echo "Linux 386 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep 386
 
-.PHONY: ioctl
-ioctl:
-	$(GOBUILD) -ldflags "$(PackageFlags)" -o ./bin/$(BUILD_TARGET_IOCTL) -v ./ioctl
+gntc-linux-amd64:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/amd64 -v ./cmd/gntc
+	@echo "Linux amd64 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep amd64
+
+gntc-linux-arm: gntc-linux-arm-5 gntc-linux-arm-6 gntc-linux-arm-7 gntc-linux-arm64
+	@echo "Linux ARM cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep arm
+
+gntc-linux-arm-5:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/arm-5 -v ./cmd/gntc
+	@echo "Linux ARMv5 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep arm-5
+
+gntc-linux-arm-6:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/arm-6 -v ./cmd/gntc
+	@echo "Linux ARMv6 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep arm-6
+
+gntc-linux-arm-7:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/arm-7 -v ./cmd/gntc
+	@echo "Linux ARMv7 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep arm-7
+
+gntc-linux-arm64:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/arm64 -v ./cmd/gntc
+	@echo "Linux ARM64 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep arm64
+
+gntc-linux-mips:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/mips --ldflags '-extldflags "-static"' -v ./cmd/gntc
+	@echo "Linux MIPS cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep mips
+
+gntc-linux-mipsle:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/mipsle --ldflags '-extldflags "-static"' -v ./cmd/gntc
+	@echo "Linux MIPSle cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep mipsle
+
+gntc-linux-mips64:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/mips64 --ldflags '-extldflags "-static"' -v ./cmd/gntc
+	@echo "Linux MIPS64 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep mips64
+
+gntc-linux-mips64le:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=linux/mips64le --ldflags '-extldflags "-static"' -v ./cmd/gntc
+	@echo "Linux MIPS64le cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-linux-* | grep mips64le
+
+gntc-darwin: gntc-darwin-386 gntc-darwin-amd64
+	@echo "Darwin cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-darwin-*
+
+gntc-darwin-386:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=darwin/386 -v ./cmd/gntc
+	@echo "Darwin 386 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-darwin-* | grep 386
+
+gntc-darwin-amd64:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=darwin/amd64 -v ./cmd/gntc
+	@echo "Darwin amd64 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-darwin-* | grep amd64
+
+gntc-windows: gntc-windows-386 gntc-windows-amd64
+	@echo "Windows cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-windows-*
+
+gntc-windows-386:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=windows/386 -v ./cmd/gntc
+	@echo "Windows 386 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-windows-* | grep 386
+
+gntc-windows-amd64:
+	build/env.sh go run build/ci.go xgo -- --go=$(GO) --targets=windows/amd64 -v ./cmd/gntc
+	@echo "Windows amd64 cross compilation done:"
+	@ls -ld $(GOBIN)/gntc-windows-* | grep amd64

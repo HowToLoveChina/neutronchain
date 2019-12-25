@@ -1,128 +1,67 @@
-# neutronchain-core
+![](images/ntc_logo.jpg)
 
-[![Join the chat at https://gitter.im/neutronchain-dev-community/Lobby](https://badges.gitter.im/neutronchain-dev-community/Lobby.svg)](https://gitter.im/neutronchain-dev-community/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Go version](https://img.shields.io/badge/go-1.11.5-blue.svg)](https://github.com/moovweb/gvm)
-[![Go Report Card](https://goreportcard.com/badge/github.com/neutronchainproject/neutronchain-core)](https://goreportcard.com/report/github.com/neutronchainproject/neutronchain-core)
-[![Coverage](https://codecov.io/gh/neutronchainproject/neutronchain-core/branch/master/graph/badge.svg)](https://codecov.io/gh/neutronchainproject/neutronchain-core)
-[![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/neutronchainproject/neutronchain-core)
-[![Releases](https://img.shields.io/github/release/neutronchainproject/neutronchain-core/all.svg?style=flat-square)](https://github.com/neutronchainproject/neutronchain-core/releases)
-[![LICENSE](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-
-![neutronchain Logo](https://www.neutroncoin.io/ntclogo.png)
-----
-
-Welcome to the official Go implementation of neutronchain protocol! neutronchain is building the next generation of the decentralized 
-network for IoT powered by scalability- and privacy-centric blockchains. Please refer to neutronchain
-[whitepaper](https://neutronchain.io/academics) for details.
-
-## Get started
-
-### Minimum requirements
-
-| Components | Version | Description |
-|----------|-------------|-------------|
-| [Golang](https://golang.org) | &ge; 1.11.5 | Go programming language |
-| [Protoc](https://developers.google.com/protocol-buffers/) | &ge; 3.6.0 | Protocol buffers, required only when you rebuild protobuf messages |
-
-### Get neutronchain-core
-
-The easiest way to get neutronchain-core is to use one of release packages which are available for OSX, Linux on the 
-[release page](https://github.com/neutronchainproject/neutronchain-core/releases). neutronchain-core is also distributed via docker image
-on [docker hub](https://hub.docker.com/r/neutronchain/neutronchain-core).
+# GO ntc
+Waltonchain Mainnet User Manual
 
 
-### Build neutronchain-core from code
+## Steps
 
-Download the code to your desired local location (doesn't have to be under `$GOPATH/src`)
-```
-git clone git@github.com:neutronchainproject/neutronchain-core.git
-cd neutronchain-core
-```
+### 1. Run docker container
+Install latest distribution of [Go](https://golang.org "Go") if you don't have it already.  
+`# sudo apt-get install -y build-essential`  
 
-If you put the project code under your `$GOPATH\src`, you will need to set up an environment variable
-```
-export GO111MODULE=on
-set GO111MODULE=on (for windows)
-```
+### 2. Compile source code
+`# cd /usr/local/src`  
+`# git clone https://github.com/WaltonChain/WaltonChain_Gntc_Src.git`  
+`# cd WaltonChain_Gntc_Src`  
+`# make gntc`  
+`# ./build/bin/gntc version`  
 
-Build the project for general purpose (server, ioctl) by
+### 3. Deploy
+`# cd /usr/local/src/WaltonChain_Gntc_Src/gntc_bin/`  
+`# cp ../build/bin/gntc ./bin/gntc`  
+`# ./backend.sh`
 
-```
-make
-```
+### 4. Enter console
+`# cd /usr/local/src/WaltonChain_Gntc_Src/gntc_bin/`  
+`# ./bin/gntc attach ./data/gntc.ipc`
 
-Build the project for broader purpose (server, ioctl, injector...) by
-```
-make all 
-```
+### 5. View information of the connected node
+`# admin.peers`
 
-If the dependency needs to be updated, run
+### 6. Create account
+`# personal.newAccount()`  
+`# ******`  ---- Enter new account password  
+`# ******`  ---- Confirm the new account password  
 
-```
-go get -u
-go mod tidy
-```
-If you want learn more advanced usage about `go mod`, you can find out [here](https://github.com/golang/go/wiki/Modules).
+### 7. Mine
+`# miner.start()`
 
-Run unit tests only by
+### 8. Query
+`# ntc.getBalance(ntc.coinbase)`
 
-```
-make test
-```
+### 9. Unlock account
+`# personal.unlockAccount(ntc.coinbase)`
 
-Build the docker image by
+### 10. Transfer
+`# ntc.sendTransaction({from: ntc.accounts[0], to: ntc.accounts[1], value: web3.toWei(1)})`
 
-```
-make docker
-```
+### 11. Exit console
+`# exit`
 
-### Run neutronchain-core
+### 12. View log
+`# cd /usr/local/src/WaltonChain_Gntc_Src/gntc_bin/`  
+`# tail -f gntc.log`
 
-Start (or resume) a standalone server to operate on an blockchain by
+### 13. Stop gntc
+`# cd /usr/local/src/WaltonChain_Gntc_Src/gntc_bin/`  
+`# ./stop.sh` 
 
-```
-make run
-```
 
-Restart the server from a clean state by
+## Acknowledgement
+We hereby thank:  
+· [Ethereum](https://www.ethereum.org/ "Ethereum")
 
-```
-make reboot
-```
 
-If "make run" fails due to corrupted or missing state database while block database is in normal condition, e.g.,
-failing to get factory's height from underlying DB, please try to recover state database by
 
-```
-make recover
-```
 
-Then, "make run" again.
-
-### Use CLI
-
-Users could interact with neutronchain blockchain by
-
-```
-ioctl [command]
-```
-
-Refer to [CLI document](ioctl/README.md) for more details.
-
-## Contact
-
-- Mailing list: [neutronchain-dev](neutronchain-dev@neutronchain.io)
-- IRC: [gitter](https://gitter.im/neutronchain-dev-community/Lobby)
-- Bugs: [issues](https://github.com/neutronchainproject/neutronchain-core/issues)
-
-## Contribution
-We are glad to have contributors out of the core team; contributions, including (but not limited to) style/bug fixes,
-implementation of features, proposals of schemes/algorithms, and thorough documentation, are welcomed. Please refer to
-our [contribution guideline](CONTRIBUTING.md) for more
-information. Development guide documentation is [here](https://github.com/neutronchainproject/neutronchain-core/wiki/Developers%27-Guide).
-
-For any major protocol level changes, we use [IIP](https://github.com/neutronchainproject/iips) to track the proposal, decision
-and etc.
-
-## License
-This project is licensed under the [Apache License 2.0](LICENSE).
